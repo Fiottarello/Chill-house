@@ -1,0 +1,148 @@
+body {
+  margin: 0;
+  /* Dark Mode Background (Slate 950) */
+  background-color: #020617; 
+  /* Light Text (Slate 100) */
+  color: #f1f5f9; 
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  min-height: 100vh;
+}
+
+/* Stili "Moderni" adattati al Dark Mode */
+.modern-card {
+  /* Fondo scheda scuro (Slate 900) */
+  background: #0f172a; 
+  border-radius: 1.5rem;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+  /* Bordo molto sottile e scuro */
+  border: 1px solid #1e293b; 
+  padding: 2rem;
+  width: 100%;
+  max-width: 450px;
+}
+
+.modern-input {
+  border-radius: 0.75rem !important;
+  /* Bordo scuro per input */
+  border: 1px solid #334155 !important; 
+  padding: 0.75rem 1rem !important;
+  /* Fondo input scuro */
+  background-color: #1e293b !important; 
+  color: #f1f5f9 !important; /* Testo chiaro dentro input */
+}
+
+.modern-input:focus {
+  border-color: #818cf8 !important; /* Indigo leggermente più chiaro per dark mode */
+  box-shadow: 0 0 0 0.2rem rgba(129, 140, 248, 0.25) !important;
+  background-color: #1e293b !important; /* Manteniamo fondo scuro */
+}
+
+/* Fix per i segnaposto negli input scuri */
+.modern-input::placeholder {
+  color: #94a3b8 !important;
+  opacity: 0.7;
+}
+
+.btn-indigo {
+  background-color: #4f46e5 !important; /* Manteniamo l'indigo originale vibrante */
+  color: white !important;
+  border-radius: 0.75rem !important;
+  border: none !important;
+  font-weight: 700 !important;
+  padding: 0.75rem !important;
+  transition: all 0.2s !important;
+}
+
+.btn-indigo:hover {
+  background-color: #6366f1 !important; /* Leggermente più chiaro al passaggio */
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(79, 70, 229, 0.4);
+}
+
+/* Fix per i testi "muted" in dark mode */
+.text-muted {
+  color: #94a3b8 !important; /* Grigio chiaro per sottotitoli */
+}
+
+/* ==========================================================================
+   OVERRIDE COMPLETO REACT CALENDAR DARK MODE
+   ========================================================================== */
+.react-calendar {
+  background: transparent !important;
+  color: #f1f5f9 !important;
+  border: none !important;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
+  width: 100% !important;
+}
+
+/* Mese e frecce di navigazione */
+.react-calendar__navigation button {
+  color: #f1f5f9 !important;
+  font-weight: 800 !important;
+  font-size: 1.1rem !important;
+  min-width: 44px !important;
+  background: none !important;
+}
+
+.react-calendar__navigation button:enabled:hover,
+.react-calendar__navigation button:enabled:focus {
+  background-color: #1e293b !important;
+  border-radius: 0.75rem;
+}
+
+/* Giorni della settimana (Lun, Mar, ecc.) */
+.react-calendar__month-view__weekdays {
+  color: #818cf8 !important;
+  font-weight: 700 !important;
+  text-transform: uppercase;
+  font-size: 0.75rem !important;
+  padding-bottom: 0.5rem;
+}
+
+.react-calendar__month-view__weekdays__weekday abbr {
+  text-decoration: none !important;
+}
+
+/* Singoli tasselli dei giorni */
+.react-calendar__tile {
+  color: #e2e8f0 !important;
+  padding: 0.85rem 0.5rem !important;
+  border-radius: 0.75rem !important;
+  transition: all 0.15s ease;
+}
+
+.react-calendar__tile:enabled:hover,
+.react-calendar__tile:enabled:focus {
+  background-color: #334155 !important;
+}
+
+/* Giorno corrente */
+.react-calendar__tile--now {
+  background: #1e293b !important;
+  font-weight: bold !important;
+  border: 2px solid #818cf8 !important;
+}
+
+/* Date selezionate dall'utente (Range di prenotazione) */
+.react-calendar__tile--active {
+  background: #4f46e5 !important;
+  color: white !important;
+}
+
+.react-calendar__tile--active:enabled:hover,
+.react-calendar__tile--active:enabled:focus {
+  background: #6366f1 !important;
+}
+
+/* GIORNI OCCUPATI (Disabilitati dal DB) */
+.react-calendar__tile:disabled {
+  background-color: #1e293b !important;
+  color: #475569 !important;
+  text-decoration: line-through;
+  opacity: 0.3;
+}
+
+/* Giorni dei mesi adiacenti */
+.react-calendar__month-view__days__day--neighboringMonth {
+  color: #475569 !important;
+}

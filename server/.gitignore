@@ -1,0 +1,14 @@
+# Dipendenze
+node_modules/
+
+# File di build di Vite
+dist/
+
+# Variabili d'ambiente (non vogliamo le password pubbliche)
+.env
+
+# File di sistema
+.DS_Store
+
+# (Opzionale) Se non vuoi caricare i dati locali del DB su GitHub
+casaNostra.sqlite
