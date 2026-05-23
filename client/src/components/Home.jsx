@@ -80,10 +80,10 @@ function Home() {
     <div className="d-flex flex-column align-items-center justify-content-center flex-grow-1 w-100 py-5 animate-fade-in" style={{ backgroundColor: '#020617', overflowX: 'hidden' }}>
       
       {/* HEADER MINIMAL */}
-      <div className="text-center px-4 mb-4" style={{ maxWidth: '900px' }}>
+      <div className="text-center px-4 mb-4" style={{ maxWidth: '1000px' }}>
         {/* Modifica: Testo chiaro (f1f5f9) */}
-        <h1 style={{ fontSize: 'clamp(2.2rem, 5vw, 4rem)', fontWeight: 900, color: '#f1f5f9', letterSpacing: '-1.5px', lineHeight: '1.1' }}>
-          Benvenuti nella nostra abitazione,
+        <h1 style={{ fontSize: 'clamp(2.2rem, 5vw, 4rem)', fontWeight: 900, color: '#f1f5f9', letterSpacing: '-1.0px', lineHeight: '1.1' }}>
+          Benvenuti nella nostra dimora
         </h1>
         {/* Modifica: Indigo brillante (818cf8) */}
         <p className="mt-3 mb-0" style={{ fontSize: 'clamp(1.2rem, 2.5vw, 1.8rem)', color: '#818cf8', fontWeight: 600, fontStyle: 'italic' }}>
