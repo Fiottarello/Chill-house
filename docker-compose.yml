@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ./server
+    container_name: casanostra_backend
+    ports:
+      - "3001:3001"
+    environment:
+      # Qui è dove diciamo al backend chi è autorizzato a parlargli
+      - FRONTEND_URL=http://<IL_TUO_IP_ORACLE>
+    volumes:
+      - ./server/data:/app/data
+      - ./server/public/uploads:/app/public/uploads
+    restart: always
+
+  frontend:
+    build: ./client
+    container_name: casanostra_frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: always

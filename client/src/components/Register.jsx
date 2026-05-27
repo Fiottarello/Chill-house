@@ -6,7 +6,7 @@ import { registerHandler } from '../api/API.mjs';
 function Register({ setUser, setIsAuth, setIsAdmin }) {
   const [form, setForm] = useState({ 
     name: '', surname: '', email: '', password: '', 
-    occupazione: '', da_quanto_ci_conosci: '', descrizione_simpatica: '', avatar_url: '' 
+    occupazione: '', da_quanto_ci_conosci: '', descrizione_simpatica: '', avatar_url: '', stays_count: 0
   });
   const navigate = useNavigate();
 
@@ -65,6 +65,7 @@ function Register({ setUser, setIsAuth, setIsAdmin }) {
 
           <Form.Group className="mb-3"><Form.Control className="modern-input" placeholder="Tua occupazione (es. Studente, Ninja...)" onChange={e => setForm({...form, occupazione: e.target.value})} /></Form.Group>
           <Form.Group className="mb-3"><Form.Control className="modern-input" placeholder="Da quanto ci conosci?" onChange={e => setForm({...form, da_quanto_ci_conosci: e.target.value})} /></Form.Group>
+          <Form.Group className="mb-3"><Form.Control type="number" min="0" className="modern-input" placeholder="Quante volte hai soggiornato da noi?" onChange={e => setForm({...form, stays_count: parseInt(e.target.value) || 0})} /></Form.Group>
           <Form.Group className="mb-4"><Form.Control className="modern-input" as="textarea" rows={3} placeholder="Descrizione simpatica su di te..." onChange={e => setForm({...form, descrizione_simpatica: e.target.value})} /></Form.Group>
           
           <Button type="submit" className="w-100 btn-indigo fs-5">Registrati 🚀</Button>

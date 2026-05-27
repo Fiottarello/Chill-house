@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Form, Button, Row, Col } from 'react-bootstrap';
-import { fetchRecensioni, submitRecensione, rispondiRecensione } from '../api/API.mjs';
+import { Form, Button, Row, Col, Modal, Card, Spinner } from 'react-bootstrap';
+import { fetchRecensioni, submitRecensione, rispondiRecensione, fetchPublicProfile } from '../api/API.mjs';
+import { getTier } from '../utils/tierUtils';
 
 function Recensioni({ user, isAuth, isAdmin }) {
   const [listaRecensioni, setListaRecensioni] = useState([]);
@@ -8,7 +9,14 @@ function Recensioni({ user, isAuth, isAdmin }) {
   const [nuovoTitolo, setNuovoTitolo] = useState('');
   const [nuovoVoto, setNuovoVoto] = useState(5);
   const [nuovoCommento, setNuovoCommento] = useState('');
+  const [nuovaFoto, setNuovaFoto] = useState(null);
   const [risposte, setRisposte] = useState({});
+  const [showModal, setShowModal] = useState(false);
+  const [modalImage, setModalImage] = useState(null);
+  
+  const [showPublicModal, setShowPublicModal] = useState(false);
+  const [publicProfile, setPublicProfile] = useState(null);
+  const [publicProfileLoading, setPublicProfileLoading] = useState(false);
 
   const caricaRecensioni = async () => {
     try {
@@ -27,8 +35,15 @@ function Recensioni({ user, isAuth, isAdmin }) {
     e.preventDefault();
     setLoading(true);
     try {
-      await submitRecensione({ titolo: nuovoTitolo, voto: nuovoVoto, commento: nuovoCommento });
-      setNuovoTitolo(''); setNuovoCommento(''); setNuovoVoto(5);
+      const formData = new FormData();
+      formData.append('titolo', nuovoTitolo);
+      formData.append('voto', nuovoVoto);
+      formData.append('commento', nuovoCommento);
+      if (nuovaFoto) {
+        formData.append('foto', nuovaFoto);
+      }
+      await submitRecensione(formData);
+      setNuovoTitolo(''); setNuovoCommento(''); setNuovoVoto(5); setNuovaFoto(null);
       caricaRecensioni();
     } catch (err) {
       alert(err);
@@ -45,6 +60,24 @@ function Recensioni({ user, isAuth, isAdmin }) {
       caricaRecensioni();
     } catch (err) {
       alert("Errore invio risposta");
+    }
+  };
+
+  const handleAvatarClick = async (userId) => {
+    if (!isAuth) {
+      alert("Devi essere loggato per vedere i profili.");
+      return;
+    }
+    setShowPublicModal(true);
+    setPublicProfileLoading(true);
+    try {
+      const data = await fetchPublicProfile(userId);
+      setPublicProfile(data);
+    } catch (err) {
+      alert("Errore caricamento profilo");
+      setShowPublicModal(false);
+    } finally {
+      setPublicProfileLoading(false);
     }
   };
 
@@ -133,18 +166,16 @@ function Recensioni({ user, isAuth, isAdmin }) {
                   <Form.Control as="textarea" rows={3} className="modern-input" style={{ resize: 'none' }} required value={nuovoCommento} onChange={e => setNuovoCommento(e.target.value)} />
                 </Form.Group>
 
-                {/* --- SEZIONE FOTO (DISATTIVATA TEMPORANEAMENTE) --- */}
+                {/* --- SEZIONE FOTO --- */}
                 <Form.Group className="mb-4">
                   <Form.Label className="small fw-bold text-muted text-uppercase">
-                    Allega una foto <span className="badge bg-secondary ms-1" style={{ fontSize: '0.6rem' }}>Prossimamente</span>
+                    Allega una foto (opzionale)
                   </Form.Label>
                   <Form.Control 
                     type="file" 
                     accept="image/*" 
                     className="modern-input" 
-                    disabled 
-                    style={{ opacity: 0.5, cursor: 'not-allowed' }}
-                    title="Funzionalità in arrivo col prossimo aggiornamento!"
+                    onChange={e => setNuovaFoto(e.target.files[0])}
                   />
                 </Form.Group>
 
@@ -165,9 +196,20 @@ function Recensioni({ user, isAuth, isAdmin }) {
               <div key={rec.id} className="modern-card mb-4" style={{ maxWidth: '100%' }}>
                 <div className="d-flex justify-content-between align-items-start mb-3">
                   <div className="d-flex align-items-center gap-3">
-                    <img src={rec.autore_avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80"} alt="Avatar" className="rounded-circle border" style={{ width: '45px', height: '45px', objectFit: 'cover' }} />
+                    <img 
+                      src={rec.autore_avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80"} 
+                      alt="Avatar" 
+                      className="rounded-circle border border-2 shadow-sm" 
+                      style={{ width: '45px', height: '45px', objectFit: 'cover', borderColor: getTier(rec.autore_stays_count || 0).color, cursor: isAuth ? 'pointer' : 'default' }} 
+                      onClick={() => handleAvatarClick(rec.user_id)}
+                    />
                     <div>
-                      <h6 className="mb-0 fw-bold text-white">{rec.autore_nome}</h6>
+                      <div className="d-flex align-items-center gap-2">
+                        <h6 className="mb-0 fw-bold text-white">{rec.autore_nome}</h6>
+                        <span className="badge text-dark shadow-sm" style={{ backgroundColor: getTier(rec.autore_stays_count || 0).color, fontSize: '0.65rem' }}>
+                          {getTier(rec.autore_stays_count || 0).icon} {getTier(rec.autore_stays_count || 0).name}
+                        </span>
+                      </div>
                       <small className="text-muted text-uppercase" style={{ fontSize: '0.7rem', letterSpacing: '1px' }}>{rec.autore_occupazione || "Ospite"}</small>
                     </div>
                   </div>
@@ -175,7 +217,21 @@ function Recensioni({ user, isAuth, isAdmin }) {
                 </div>
                 
                 <h5 className="fw-bolder text-white">{rec.titolo}</h5>
-                <p className="text-muted mb-0">{rec.commento}</p>
+                <p className="text-muted mb-3">{rec.commento}</p>
+
+                {rec.foto_url && (
+                  <div className="mb-3">
+                    <img 
+                      src={`http://localhost:3001${rec.foto_url}`} 
+                      alt="Foto recensione" 
+                      className="rounded shadow-sm border border-secondary"
+                      style={{ width: '100px', height: '100px', objectFit: 'cover', cursor: 'pointer', transition: 'transform 0.2s' }}
+                      onMouseEnter={(e) => e.target.style.transform = 'scale(1.05)'}
+                      onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
+                      onClick={() => { setModalImage(`http://localhost:3001${rec.foto_url}`); setShowModal(true); }}
+                    />
+                  </div>
+                )}
 
                 {rec.risposta_admin && (
                   <div className="mt-3 p-3 rounded" style={{ backgroundColor: '#1e1b4b', borderLeft: '4px solid #818cf8' }}>
@@ -195,6 +251,85 @@ function Recensioni({ user, isAuth, isAdmin }) {
           )}
         </div>
       </div>
+
+      <Modal show={showModal} onHide={() => setShowModal(false)} centered size="lg">
+        <Modal.Body className="p-0 bg-transparent border-0 d-flex justify-content-center">
+          {modalImage && <img src={modalImage} alt="Ingrandimento" style={{ maxWidth: '100%', maxHeight: '90vh', borderRadius: '15px' }} />}
+        </Modal.Body>
+      </Modal>
+
+      {/* --- MODALE PROFILO PUBBLICO --- */}
+      <Modal show={showPublicModal} onHide={() => { setShowPublicModal(false); setPublicProfile(null); }} centered size="xl" contentClassName="bg-transparent border-0">
+        <Modal.Body className="p-0">
+          {publicProfileLoading || !publicProfile ? (
+            <div className="text-center p-5 rounded-4 shadow-lg" style={{ backgroundColor: '#1e293b' }}>
+              <Spinner animation="border" variant="light" />
+              <p className="text-light mt-3">Caricamento profilo...</p>
+            </div>
+          ) : (
+            <div className="container p-0">
+              <Row className="g-4">
+                <Col lg={4}>
+                  <Card className="modern-card text-center border-0 p-4 h-100 shadow-lg position-relative" style={{ backgroundColor: '#1e293b' }}>
+                    <Button variant="outline-light" size="sm" className="position-absolute top-0 end-0 m-3 rounded-circle" onClick={() => setShowPublicModal(false)}>✕</Button>
+                    <div className="mb-4">
+                      <img 
+                        src={publicProfile.avatar_url || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=300&q=80"} 
+                        alt="Profile"
+                        className="rounded-circle border border-4 shadow-sm"
+                        style={{ width: '150px', height: '150px', objectFit: 'cover', borderColor: getTier(publicProfile.stays_count || 0).color }}
+                      />
+                    </div>
+                    <h3 className="fw-bolder text-white mb-3">{publicProfile.name} {publicProfile.surname}</h3>
+                    
+                    <div className="p-3 rounded mb-4" style={{ backgroundColor: '#0f172a' }}>
+                      <span className="d-block text-muted small fw-bold mb-1 text-uppercase">Grado Attuale</span>
+                      <div className="d-flex align-items-center justify-content-center gap-2">
+                        <span style={{ fontSize: '2rem' }}>{getTier(publicProfile.stays_count || 0).icon}</span>
+                        <span className="fw-bolder fs-4" style={{ color: getTier(publicProfile.stays_count || 0).color }}>{getTier(publicProfile.stays_count || 0).name}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="d-flex justify-content-around text-center mt-auto">
+                      <div>
+                        <h5 className="text-white fw-bold mb-0">{publicProfile.stays_count || 0}</h5>
+                        <span className="text-muted small">Soggiorni</span>
+                      </div>
+                    </div>
+                  </Card>
+                </Col>
+
+                <Col lg={8}>
+                  <Card className="modern-card border-0 p-4 shadow-lg h-100" style={{ backgroundColor: '#1e293b' }}>
+                    <h4 className="fw-bold text-white mb-4 border-bottom pb-2" style={{ borderColor: '#334155 !important' }}>Dettagli Ospite</h4>
+                    <Row className="g-3">
+                      <Col md={6}>
+                        <div className="p-3 rounded h-100" style={{ backgroundColor: '#0f172a' }}>
+                          <small className="text-muted fw-bold d-block mb-1">Occupazione</small>
+                          <span className="text-light">{publicProfile.occupazione || 'Non specificato'}</span>
+                        </div>
+                      </Col>
+                      <Col md={6}>
+                        <div className="p-3 rounded h-100" style={{ backgroundColor: '#0f172a' }}>
+                          <small className="text-muted fw-bold d-block mb-1">Come ci ha conosciuto</small>
+                          <span className="text-light">{publicProfile.come_conosciuto || 'Non specificato'}</span>
+                        </div>
+                      </Col>
+                      <Col md={12}>
+                        <div className="p-3 rounded" style={{ backgroundColor: '#0f172a' }}>
+                          <small className="text-muted fw-bold d-block mb-1">Descrizione Simpatica</small>
+                          <span className="text-light fst-italic">"{publicProfile.descrizione_simpatica || 'Nessuna descrizione'}"</span>
+                        </div>
+                      </Col>
+                    </Row>
+                  </Card>
+                </Col>
+              </Row>
+            </div>
+          )}
+        </Modal.Body>
+      </Modal>
+
     </div>
   );
 }

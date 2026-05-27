@@ -2,7 +2,14 @@ import sqlite3 from 'sqlite3';
 import { open } from 'sqlite';
 import { User } from './models.mjs';
 
-const databaseName = 'casaNostra.sqlite';
+import fs from 'fs';
+
+const dataDir = './data';
+if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir);
+}
+
+const databaseName = './data/casaNostra.sqlite';
 
 async function setupDatabase() {
     const db = await open({
@@ -12,11 +19,9 @@ async function setupDatabase() {
 
     console.log("✅ Database connesso");
 
-    // ELIMINIAMO LE VECCHIE TABELLE PER FORZARE L'AGGIORNAMENTO DELLO SCHEMA
-    console.log("⚠️ Eliminazione vecchie tabelle in corso per aggiornare lo schema...");
-    await db.run(`DROP TABLE IF EXISTS recensioni`);
-    await db.run(`DROP TABLE IF EXISTS prenotazioni`);
-    await db.run(`DROP TABLE IF EXISTS user`);
+    // Non eliminiamo le tabelle per mantenere la persistenza
+    console.log("⚠️ Verifica e creazione tabelle in corso (nessun dato verrà cancellato)...");
+
 
     // 1. TABELLA UTENTI (Con campi extra per profilo)
     await db.run(`CREATE TABLE IF NOT EXISTS user (
@@ -30,8 +35,25 @@ async function setupDatabase() {
         da_quanto_ci_conosci TEXT,
         descrizione_simpatica TEXT,
         avatar_url TEXT,
-        role TEXT NOT NULL DEFAULT 'ospite'
+        role TEXT NOT NULL DEFAULT 'ospite',
+        stays_count INTEGER DEFAULT 0
     )`);
+
+    // Prova ad aggiungere la colonna stays_count nel caso in cui la tabella esista già (aggiornamento schema safe)
+    try {
+        await db.run(`ALTER TABLE user ADD COLUMN stays_count INTEGER DEFAULT 0`);
+        console.log("✅ Colonna stays_count aggiunta alla tabella user.");
+    } catch (e) {
+        // La colonna esiste già, nessun problema
+    }
+
+    // Prova ad aggiungere la colonna has_seen_tutorial (aggiornamento schema safe)
+    try {
+        await db.run(`ALTER TABLE user ADD COLUMN has_seen_tutorial INTEGER DEFAULT 0`);
+        console.log("✅ Colonna has_seen_tutorial aggiunta alla tabella user.");
+    } catch (e) {
+        // La colonna esiste già, nessun problema
+    }
 
     // 2. TABELLA PRENOTAZIONI (Con campi espansi come nel progetto precedente)
     await db.run(`CREATE TABLE IF NOT EXISTS prenotazioni (
@@ -61,10 +83,60 @@ async function setupDatabase() {
         FOREIGN KEY(user_id) REFERENCES user(id) ON DELETE CASCADE
     )`);
 
+    // 4. TABELLA SCHEDINE (Tipster)
+    await db.run(`CREATE TABLE IF NOT EXISTS schedine (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        titolo TEXT NOT NULL,
+        foto_url TEXT NOT NULL,
+        importo REAL DEFAULT 0,
+        status TEXT NOT NULL DEFAULT 'in corso',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(user_id) REFERENCES user(id) ON DELETE CASCADE
+    )`);
+
+    // 5. TABELLA GUFI (Like negativi sulle schedine)
+    await db.run(`CREATE TABLE IF NOT EXISTS gufi (
+        user_id INTEGER NOT NULL,
+        schedina_id INTEGER NOT NULL,
+        PRIMARY KEY (user_id, schedina_id),
+        FOREIGN KEY(user_id) REFERENCES user(id) ON DELETE CASCADE,
+        FOREIGN KEY(schedina_id) REFERENCES schedine(id) ON DELETE CASCADE
+    )`);
+
+    // 6. TABELLA SONDAGGI (Live Polls)
+    await db.run(`CREATE TABLE IF NOT EXISTS sondaggi (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        domanda TEXT NOT NULL,
+        opzioni_json TEXT NOT NULL,
+        is_active INTEGER DEFAULT 1,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`);
+
+    // 7. TABELLA VOTI SONDAGGI
+    await db.run(`CREATE TABLE IF NOT EXISTS sondaggi_voti (
+        sondaggio_id INTEGER NOT NULL,
+        user_id INTEGER NOT NULL,
+        opzione_index INTEGER NOT NULL,
+        PRIMARY KEY (sondaggio_id, user_id),
+        FOREIGN KEY(sondaggio_id) REFERENCES sondaggi(id) ON DELETE CASCADE,
+        FOREIGN KEY(user_id) REFERENCES user(id) ON DELETE CASCADE
+    )`);
+
+    // 8. TABELLA MESSAGGI CHAT
+    await db.run(`CREATE TABLE IF NOT EXISTS chat_messages (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        testo TEXT,
+        immagine_b64 TEXT,
+        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(user_id) REFERENCES user(id) ON DELETE CASCADE
+    )`);
+
     // Inserimento Admin di base
     const adminUser = await User.create(
         "Simone", "Vergine", "admin@admin.com", "admin123", 
-        "", "Dev", "Da sempre", "Fondatore super simpatico", "", "admin"
+        "Dev", "Da sempre", "Fondatore super simpatico", "", "admin"
     );
     
     try {
