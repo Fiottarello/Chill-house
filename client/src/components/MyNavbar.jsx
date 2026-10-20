@@ -49,6 +49,7 @@ function MyNavbar({ handleLogoutWrapper, isAuth, user }) {
           <Nav className="align-items-center gap-2 font-weight-bold">
             {/* Modifica: Colori dei testi adattati (bianco/grigio chiaro) */}
             <Nav.Link id="tour-home-link" onClick={() => navigate("/")} style={{ color: isActive('/') ? '#818cf8' : '#f1f5f9', fontWeight: 600 }}>Home</Nav.Link>
+            <Nav.Link onClick={() => navigate("/casa")} style={{ color: isActive('/casa') ? '#818cf8' : '#f1f5f9', fontWeight: 600 }}>Casa</Nav.Link>
             <Nav.Link onClick={() => navigate("/inquilini")} style={{ color: isActive('/inquilini') ? '#818cf8' : '#f1f5f9', fontWeight: 600 }}>Inquilini</Nav.Link>
             <Nav.Link id="tour-prenota" onClick={() => navigate("/prenota")} style={{ color: isActive('/prenota') ? '#818cf8' : '#f1f5f9', fontWeight: 600 }}>Prenota</Nav.Link>
             <Nav.Link id="tour-bacheca" onClick={() => navigate("/recensioni")} style={{ color: isActive('/recensioni') ? '#f1f5f9' : '#94a3b8' }} className="fw-semibold">
@@ -58,6 +59,7 @@ function MyNavbar({ handleLogoutWrapper, isAuth, user }) {
             <Nav.Link id="tour-tipster" onClick={() => navigate("/tipster")} style={{ color: isActive('/tipster') ? '#f1f5f9' : '#94a3b8' }} className="fw-bold d-flex align-items-center gap-1">
               Tipster
             </Nav.Link>
+            <Nav.Link onClick={() => navigate("/sondaggi")} style={{ color: isActive('/sondaggi') ? '#818cf8' : '#f1f5f9', fontWeight: 600 }}>Sondaggi</Nav.Link>
 
             <Nav.Link id="tour-rewards" onClick={() => navigate("/rewards")} style={{ color: isActive('/rewards') ? '#f1f5f9' : '#94a3b8' }} className="fw-semibold d-flex align-items-center gap-2">Rewards</Nav.Link>
             

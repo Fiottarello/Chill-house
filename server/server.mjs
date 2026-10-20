@@ -9,8 +9,13 @@ import * as dao from './dao.mjs';
 import multer from 'multer';
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
+import { sendBookingConfirmation } from './mailer.mjs';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const httpServer = createServer(app);
@@ -22,8 +27,8 @@ app.use(morgan('dev'));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-// Configurazione cartella Uploads e file statici
-const uploadDir = 'public/uploads';
+// Configurazione cartella Uploads e file statici (salvata nel volume data per persistenza)
+const uploadDir = 'data/uploads';
 if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
 }
@@ -44,8 +49,8 @@ const upload = multer({ storage: storage })
 // ==========================================
 // CONFIGURAZIONE CORS DINAMICA (Come richiesto)
 // ==========================================
-// Accetta connessioni locali di default
-const allowedOrigins = ['http://localhost:5173', 'http://127.0.0.1:5173'];
+// Accetta connessioni locali di default e il dominio di Fly.io
+const allowedOrigins = ['http://localhost:5173', 'http://127.0.0.1:5173', 'https://casa-chill.fly.dev'];
 
 // Se nel docker-compose c'è la variabile FRONTEND_URL, la aggiunge a quelle autorizzate
 if (process.env.FRONTEND_URL) {
@@ -132,6 +137,8 @@ passport.deserializeUser(async (obj, done) => {
 
 // --- AUTH ---
 app.post('/api/login', (req, res, next) => {
+  if (req.body.email) req.body.email = req.body.email.trim().toLowerCase();
+  
   passport.authenticate('local', (err, user, info) => {
     if (err) return res.json({ success: false, errorMsg: 'Errore interno' });
     if (!user) return res.json({ success: false, errorMsg: info?.message });
@@ -181,7 +188,7 @@ app.get('/api/public/user/:id', isAuthenticated, async (req, res) => {
         surname: user.surname,
         avatar_url: user.avatar_url,
         occupazione: user.occupazione,
-        come_conosciuto: user.come_conosciuto,
+        da_quanto_ci_conosci: user.da_quanto_ci_conosci,
         descrizione_simpatica: user.descrizione_simpatica,
         stays_count: user.stays_count
       }
@@ -199,9 +206,33 @@ app.put('/api/user/tutorial', isAuthenticated, async (req, res) => {
   } catch (err) { res.status(500).json({ success: false }); }
 });
 
+app.put('/api/user/profile', isAuthenticated, async (req, res) => {
+  try {
+    const { occupazione, da_quanto_ci_conosci, descrizione_simpatica } = req.body;
+    const userToUpdate = await dao.getUserById(req.user.id);
+    if (!userToUpdate) return res.status(404).json({ success: false, message: 'User not found' });
+
+    userToUpdate.occupazione = occupazione;
+    userToUpdate.da_quanto_ci_conosci = da_quanto_ci_conosci;
+    userToUpdate.descrizione_simpatica = descrizione_simpatica;
+
+    await dao.updateUser(req.user.id, userToUpdate);
+
+    // Aggiorna la sessione
+    req.user.occupazione = occupazione;
+    req.user.da_quanto_ci_conosci = da_quanto_ci_conosci;
+    req.user.descrizione_simpatica = descrizione_simpatica;
+
+    res.json({ success: true, user: req.user });
+  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
+});
+
 app.post('/api/register', async (req, res) => {
   try {
-    const { name, surname, email, password, occupazione, da_quanto_ci_conosci, descrizione_simpatica, avatar_url, stays_count } = req.body;
+    const { name, surname, password, occupazione, da_quanto_ci_conosci, descrizione_simpatica, avatar_url, stays_count } = req.body;
+    let { email } = req.body;
+    if (email) email = email.trim().toLowerCase();
+    
     if (await dao.getUserByEmail(email)) return res.json({ success: false, errorMsg: 'Email già in uso' });
 
     const salt = crypto.randomBytes(16).toString('hex');
@@ -236,8 +267,15 @@ app.get('/api/prenotazioni', async (req, res) => {
 app.post('/api/prenotazioni', isAuthenticated, async (req, res) => {
   try {
     const { arrivo, partenza, numero_ospiti, nomi_ospiti, orario_arrivo, orario_partenza, stanza, note } = req.body;
-    await dao.addPrenotazione({ user_id: req.user.id, arrivo, partenza, numero_ospiti, nomi_ospiti, orario_arrivo, orario_partenza, stanza, note, status: 'confermata' });
-    res.json({ success: true });
+    const bookingData = { user_id: req.user.id, arrivo, partenza, numero_ospiti, nomi_ospiti, orario_arrivo, orario_partenza, stanza, note, status: 'confermata' };
+    const id = await dao.addPrenotazione(bookingData);
+
+    // Invia email di conferma all'ospite in background
+    sendBookingConfirmation(req.user, { ...bookingData, id }).catch(err => {
+      console.error('[SERVER] Errore nell\'invio della mail di conferma:', err);
+    });
+
+    res.json({ success: true, id });
   } catch (err) { res.status(500).json({ success: false }); }
 });
 
@@ -261,7 +299,19 @@ app.put('/api/recensioni/:id/rispondi', isAuthenticated, isAdmin, async (req, re
   try {
     await dao.updateRispostaAdmin(req.params.id, req.body.risposta_admin);
     res.json({ success: true });
-  } catch (err) { res.status(500).json({ success: false }); }
+  } catch (err) {
+    res.status(500).json({ success: false });
+  }
+});
+
+app.post('/api/recensioni/:id/like', isAuthenticated, async (req, res) => {
+  try {
+    const result = await dao.toggleLikeRecensione(req.params.id, req.user.id);
+    res.json({ success: true, action: result.action });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, error: err });
+  }
 });
 
 // --- ADMIN API ---
@@ -390,10 +440,10 @@ app.get('/api/sondaggi', isAuthenticated, async (req, res) => {
   } catch (err) { res.status(500).json({ success: false }); }
 });
 
-app.post('/api/sondaggi', isAuthenticated, isAdmin, async (req, res) => {
+app.post('/api/sondaggi', isAuthenticated, async (req, res) => {
   try {
     const { domanda, opzioni } = req.body;
-    await dao.addSondaggio(domanda, JSON.stringify(opzioni));
+    await dao.addSondaggio(domanda, JSON.stringify(opzioni), req.user.name);
     res.json({ success: true });
   } catch (err) { console.error(err); res.status(500).json({ success: false }); }
 });
@@ -508,6 +558,17 @@ setInterval(async () => {
 // Init colonne DB maledizione
 dao.initCurseColumns().catch(e => console.log("Init maledizione OK (o colonne già presenti)."));
 
+// --- SERVING FRONTEND IN PRODUZIONE (Fly.io / Oracle Cloud) ---
+if (process.env.NODE_ENV === 'production') {
+  const buildPath = path.join(__dirname, '../client/dist');
+  app.use(express.static(buildPath));
+  app.use((req, res, next) => {
+    // Non intercettare le chiamate API
+    if (req.path.startsWith('/api')) return next();
+    res.sendFile(path.join(buildPath, 'index.html'));
+  });
+}
+
 // Usa la porta fornita dal cloud, altrimenti usa la 3001
 const PORT = process.env.PORT || 3001;
-httpServer.listen(PORT, () => console.log(`🚀 Backend (Express + Socket.io) in ascolto sulla porta ${PORT}`));
+httpServer.listen(PORT, '0.0.0.0', () => console.log(`🚀 Backend (Express + Socket.io) in ascolto su 0.0.0.0:${PORT}`));

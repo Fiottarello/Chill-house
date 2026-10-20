@@ -134,7 +134,11 @@ export const deletePrenotazione = (id) =>
 export const getAllRecensioni = () =>
   openDb().then(db => new Promise((resolve, reject) => {
     const sql = `
-      SELECT r.*, u.name as autore_nome, u.avatar_url as autore_avatar, u.occupazione as autore_occupazione, u.stays_count as autore_stays_count
+      SELECT r.*, u.name as autore_nome, u.avatar_url as autore_avatar, u.occupazione as autore_occupazione, u.stays_count as autore_stays_count,
+             (SELECT json_group_array(json_object('id', l_u.id, 'name', l_u.name || ' ' || l_u.surname))
+              FROM recensioni_likes rl
+              JOIN user l_u ON rl.user_id = l_u.id
+              WHERE rl.recensione_id = r.id) as likes_json
       FROM recensioni r
       JOIN user u ON r.user_id = u.id
       ORDER BY r.id DESC
@@ -142,7 +146,36 @@ export const getAllRecensioni = () =>
     db.all(sql, (err, rows) => {
       closeDb(db);
       if (err) return reject(err);
+      rows.forEach(r => {
+        try {
+          r.likes = JSON.parse(r.likes_json);
+          // sqlite json_group_array on empty result might return an array of objects or an empty array
+          // if it returns [{"id":null,"name":null}], we filter it out
+          r.likes = r.likes.filter(l => l.id !== null);
+        } catch (e) {
+          r.likes = [];
+        }
+        delete r.likes_json;
+      });
       resolve(rows);
+    });
+  }));
+
+export const toggleLikeRecensione = (recensioneId, userId) =>
+  openDb().then(db => new Promise((resolve, reject) => {
+    db.get('SELECT * FROM recensioni_likes WHERE recensione_id = ? AND user_id = ?', [recensioneId, userId], (err, row) => {
+      if (err) { closeDb(db); return reject(err); }
+      if (row) {
+        db.run('DELETE FROM recensioni_likes WHERE recensione_id = ? AND user_id = ?', [recensioneId, userId], function(err) {
+          closeDb(db);
+          if (err) reject(err); else resolve({ action: 'removed' });
+        });
+      } else {
+        db.run('INSERT INTO recensioni_likes (recensione_id, user_id) VALUES (?, ?)', [recensioneId, userId], function(err) {
+          closeDb(db);
+          if (err) reject(err); else resolve({ action: 'added' });
+        });
+      }
     });
   }));
 
@@ -275,7 +308,7 @@ export const getAllSondaggi = () =>
     db.all('SELECT * FROM sondaggi ORDER BY id DESC', (err, sondaggi) => {
       if (err) { closeDb(db); return reject(err); }
       
-      db.all('SELECT * FROM sondaggi_voti', (err2, voti) => {
+      db.all('SELECT sv.*, u.name as user_name FROM sondaggi_voti sv JOIN user u ON sv.user_id = u.id', (err2, voti) => {
         closeDb(db);
         if (err2) return reject(err2);
         
@@ -289,10 +322,10 @@ export const getAllSondaggi = () =>
     });
   }));
 
-export const addSondaggio = (domanda, opzioni_json) =>
+export const addSondaggio = (domanda, opzioni_json, autore_nome) =>
   openDb().then(db => new Promise((resolve, reject) => {
-    const sql = 'INSERT INTO sondaggi(domanda, opzioni_json) VALUES(?, ?)';
-    db.run(sql, [domanda, opzioni_json], function (err) {
+    const sql = 'INSERT INTO sondaggi(domanda, opzioni_json, autore_nome) VALUES(?, ?, ?)';
+    db.run(sql, [domanda, opzioni_json, autore_nome || 'Casa Chill'], function (err) {
       closeDb(db);
       if (err) return reject(err);
       resolve(this.lastID);

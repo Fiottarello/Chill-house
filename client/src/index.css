@@ -211,8 +211,8 @@ body {
 }
 
 .reel {
-  width: 120px;
-  height: 150px;
+  width: clamp(80px, 28vw, 120px);
+  height: clamp(100px, 35vw, 150px);
   border: 2px solid #475569;
 }
 
@@ -227,8 +227,8 @@ body {
 }
 
 .reel-item {
-  width: 120px;
-  height: 150px;
+  width: clamp(80px, 28vw, 120px);
+  height: clamp(100px, 35vw, 150px);
   display: flex;
   align-items: center;
   justify-content: center;

@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Form, Button, Row, Col, Modal, Card, Spinner } from 'react-bootstrap';
-import { fetchRecensioni, submitRecensione, rispondiRecensione, fetchPublicProfile } from '../api/API.mjs';
+import { FaHeart, FaRegHeart } from 'react-icons/fa';
+import { API_BASE, fetchRecensioni, submitRecensione, rispondiRecensione, fetchPublicProfile, toggleLikeRecensione } from '../api/API.mjs';
+
+const SERVER_URL = API_BASE.replace('/api', '');
 import { getTier } from '../utils/tierUtils';
 
 function Recensioni({ user, isAuth, isAdmin }) {
@@ -17,6 +20,9 @@ function Recensioni({ user, isAuth, isAdmin }) {
   const [showPublicModal, setShowPublicModal] = useState(false);
   const [publicProfile, setPublicProfile] = useState(null);
   const [publicProfileLoading, setPublicProfileLoading] = useState(false);
+
+  const [showLikesModal, setShowLikesModal] = useState(false);
+  const [currentLikes, setCurrentLikes] = useState([]);
 
   const caricaRecensioni = async () => {
     try {
@@ -56,11 +62,26 @@ function Recensioni({ user, isAuth, isAdmin }) {
     if (!risposte[id]) return;
     try {
       await rispondiRecensione(id, risposte[id]);
-      setRisposte({ ...risposte, [id]: '' });
+      setRisposte({...risposte, [id]: ''});
       caricaRecensioni();
     } catch (err) {
-      alert("Errore invio risposta");
+      console.error(err);
     }
+  };
+
+  const handleLike = async (id) => {
+    if (!isAuth) return;
+    try {
+      await toggleLikeRecensione(id);
+      caricaRecensioni();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleShowLikes = (likes) => {
+    setCurrentLikes(likes || []);
+    setShowLikesModal(true);
   };
 
   const handleAvatarClick = async (userId) => {
@@ -222,13 +243,13 @@ function Recensioni({ user, isAuth, isAdmin }) {
                 {rec.foto_url && (
                   <div className="mb-3">
                     <img 
-                      src={`http://localhost:3001${rec.foto_url}`} 
+                      src={`${SERVER_URL}${rec.foto_url}`} 
                       alt="Foto recensione" 
                       className="rounded shadow-sm border border-secondary"
                       style={{ width: '100px', height: '100px', objectFit: 'cover', cursor: 'pointer', transition: 'transform 0.2s' }}
                       onMouseEnter={(e) => e.target.style.transform = 'scale(1.05)'}
                       onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
-                      onClick={() => { setModalImage(`http://localhost:3001${rec.foto_url}`); setShowModal(true); }}
+                      onClick={() => { setModalImage(`${SERVER_URL}${rec.foto_url}`); setShowModal(true); }}
                     />
                   </div>
                 )}
@@ -239,6 +260,22 @@ function Recensioni({ user, isAuth, isAdmin }) {
                     <span className="small fst-italic text-light">"{rec.risposta_admin}"</span>
                   </div>
                 )}
+
+                <div className="mt-3 d-flex align-items-center gap-2">
+                  <span 
+                    onClick={() => handleLike(rec.id)} 
+                    style={{ cursor: isAuth ? 'pointer' : 'default', fontSize: '1.2rem', color: '#ef4444' }}
+                  >
+                    {rec.likes && rec.likes.some(l => l.id === user?.id) ? <FaHeart /> : <FaRegHeart />}
+                  </span>
+                  <span 
+                    className="small text-muted fw-bold" 
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => handleShowLikes(rec.likes)}
+                  >
+                    {rec.likes ? rec.likes.length : 0} {rec.likes?.length === 1 ? 'mi piace' : 'mi piace'}
+                  </span>
+                </div>
 
                 {isAdmin && !rec.risposta_admin && (
                   <div className="mt-3 pt-3 border-top d-flex gap-2" style={{ borderColor: '#334155' }}>
@@ -255,6 +292,26 @@ function Recensioni({ user, isAuth, isAdmin }) {
       <Modal show={showModal} onHide={() => setShowModal(false)} centered size="lg">
         <Modal.Body className="p-0 bg-transparent border-0 d-flex justify-content-center">
           {modalImage && <img src={modalImage} alt="Ingrandimento" style={{ maxWidth: '100%', maxHeight: '90vh', borderRadius: '15px' }} />}
+        </Modal.Body>
+      </Modal>
+
+      {/* Modal Piace A */}
+      <Modal show={showLikesModal} onHide={() => setShowLikesModal(false)} centered>
+        <Modal.Header closeButton className="border-0 pb-0 text-white" style={{ backgroundColor: '#0f172a' }}>
+          <Modal.Title className="fw-bold">Piace a</Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="text-white" style={{ backgroundColor: '#0f172a' }}>
+          {currentLikes.length === 0 ? (
+            <p className="text-muted text-center fst-italic py-3">Ancora nessun mi piace.</p>
+          ) : (
+            <ul className="list-unstyled mb-0">
+              {currentLikes.map((l, i) => (
+                <li key={i} className="mb-2 py-2 px-3 rounded" style={{ backgroundColor: '#1e293b' }}>
+                  <FaHeart className="text-danger me-2" /> {l.name}
+                </li>
+              ))}
+            </ul>
+          )}
         </Modal.Body>
       </Modal>
 
@@ -311,8 +368,8 @@ function Recensioni({ user, isAuth, isAdmin }) {
                       </Col>
                       <Col md={6}>
                         <div className="p-3 rounded h-100" style={{ backgroundColor: '#0f172a' }}>
-                          <small className="text-muted fw-bold d-block mb-1">Come ci ha conosciuto</small>
-                          <span className="text-light">{publicProfile.come_conosciuto || 'Non specificato'}</span>
+                          <small className="text-muted fw-bold d-block mb-1">Da quanto tempo ci conosci</small>
+                          <span className="text-light">{publicProfile.da_quanto_ci_conosci || 'Non specificato'}</span>
                         </div>
                       </Col>
                       <Col md={12}>

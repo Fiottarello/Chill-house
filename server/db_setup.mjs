@@ -110,8 +110,15 @@ async function setupDatabase() {
         domanda TEXT NOT NULL,
         opzioni_json TEXT NOT NULL,
         is_active INTEGER DEFAULT 1,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        autore_nome TEXT
     )`);
+
+    try {
+        await db.run(`ALTER TABLE sondaggi ADD COLUMN autore_nome TEXT DEFAULT 'Casa Chill'`);
+    } catch (e) {
+        // Ignora se la colonna esiste già
+    }
 
     // 7. TABELLA VOTI SONDAGGI
     await db.run(`CREATE TABLE IF NOT EXISTS sondaggi_voti (
@@ -130,6 +137,15 @@ async function setupDatabase() {
         testo TEXT,
         immagine_b64 TEXT,
         timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(user_id) REFERENCES user(id) ON DELETE CASCADE
+    )`);
+
+    // 9. TABELLA LIKES RECENSIONI
+    await db.run(`CREATE TABLE IF NOT EXISTS recensioni_likes (
+        recensione_id INTEGER NOT NULL,
+        user_id INTEGER NOT NULL,
+        PRIMARY KEY (recensione_id, user_id),
+        FOREIGN KEY(recensione_id) REFERENCES recensioni(id) ON DELETE CASCADE,
         FOREIGN KEY(user_id) REFERENCES user(id) ON DELETE CASCADE
     )`);
 

@@ -42,6 +42,14 @@ export const completeTutorial = () =>
   fetch(`${API_BASE}/user/tutorial`, { method: 'PUT', credentials: 'include' })
     .then(res => res.json());
 
+export const updateProfile = (data) =>
+  fetch(`${API_BASE}/user/profile`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(data)
+  }).then(res => res.json());
+
 // ========== PRENOTAZIONI ==========
 export const fetchPrenotazioni = () =>
   fetch(`${API_BASE}/prenotazioni`, { method: 'GET', credentials: 'include' })
@@ -98,6 +106,10 @@ export const rispondiRecensione = (id, risposta_admin) =>
     credentials: 'include',
     body: JSON.stringify({ risposta_admin })
   }).then(res => res.json());
+
+export const toggleLikeRecensione = (id) =>
+  fetch(`${API_BASE}/recensioni/${id}/like`, { method: 'POST', credentials: 'include' })
+    .then(res => res.json());
 
 // ========== ADMIN ==========
 export const fetchAllUsers = () =>

@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Form, Button, Row, Col, Badge, Modal, Dropdown } from 'react-bootstrap';
-import { fetchSchedine, submitSchedina, updateSchedinaStatus, gufoSchedina, fetchBenefattori, fetchSondaggi, votaSondaggio } from '../api/API.mjs';
+import { fetchSchedine, submitSchedina, updateSchedinaStatus, gufoSchedina, fetchBenefattori, API_BASE } from '../api/API.mjs';
 import { useNavigate } from 'react-router-dom';
+
+const SERVER_URL = API_BASE.replace('/api', '');
 
 function Tipster({ user, isAuth, isAdmin }) {
   const navigate = useNavigate();
   const [schedine, setSchedine] = useState([]);
   const [benefattori, setBenefattori] = useState([]);
-  const [sondaggi, setSondaggi] = useState([]);
   
   // Form Nuova Schedina
   const [titolo, setTitolo] = useState('');
@@ -24,14 +25,12 @@ function Tipster({ user, isAuth, isAdmin }) {
 
   const loadData = async () => {
     try {
-      const [sData, bData, pollData] = await Promise.all([
+      const [sData, bData] = await Promise.all([
         fetchSchedine(),
-        fetchBenefattori(),
-        fetchSondaggi()
+        fetchBenefattori()
       ]);
       setSchedine(sData);
       setBenefattori(bData);
-      setSondaggi(pollData);
     } catch (err) {
       console.error(err);
     }
@@ -39,10 +38,9 @@ function Tipster({ user, isAuth, isAdmin }) {
 
   useEffect(() => {
     loadData();
-    // Auto-refresh per i sondaggi ogni 5 secondi
     const intervalId = setInterval(() => {
-      fetchSondaggi().then(data => setSondaggi(data)).catch(() => {});
-    }, 5000);
+      loadData();
+    }, 15000);
     return () => clearInterval(intervalId);
   }, []);
 
@@ -79,18 +77,11 @@ function Tipster({ user, isAuth, isAdmin }) {
       if (res.action === 'added') {
         triggerFeathers();
       }
-      // Ricarica solo schedine per aggiornare conteggio velocemente
       const sData = await fetchSchedine();
       setSchedine(sData);
     } catch (err) {
       console.error(err);
     }
-  };
-
-  const handleVoto = async (sondaggioId, opzioneIndex) => {
-    await votaSondaggio(sondaggioId, opzioneIndex);
-    const data = await fetchSondaggi();
-    setSondaggi(data);
   };
 
   const triggerFeathers = () => {
@@ -180,13 +171,13 @@ function Tipster({ user, isAuth, isAdmin }) {
 
                 <div className="mb-3">
                   <img 
-                    src={`http://localhost:3001${s.foto_url}`} 
+                    src={`${SERVER_URL}${s.foto_url}`} 
                     alt="Foto schedina" 
                     className="rounded shadow-sm border border-secondary"
                     style={{ width: '150px', height: '150px', objectFit: 'cover', cursor: 'pointer', transition: 'transform 0.2s' }}
                     onMouseEnter={(e) => e.target.style.transform = 'scale(1.05)'}
                     onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
-                    onClick={() => { setModalImage(`http://localhost:3001${s.foto_url}`); setShowModal(true); }}
+                    onClick={() => { setModalImage(`${SERVER_URL}${s.foto_url}`); setShowModal(true); }}
                   />
                 </div>
 
@@ -218,44 +209,18 @@ function Tipster({ user, isAuth, isAdmin }) {
         {/* COLONNA DESTRA: SONDAGGI E BENEFATTORE */}
         <Col md={4}>
           
-          {/* SONDAGGI LIVE */}
-          <div className="mb-4">
-            <h4 className="fw-bold text-white mb-3">Live Polls 📊</h4>
-            {sondaggi.filter(s => s.is_active === 1).length === 0 ? (
-              <p className="text-muted fst-italic">Nessun sondaggio attivo al momento.</p>
-            ) : (
-              sondaggi.filter(s => s.is_active === 1).map(s => {
-                const opzioni = JSON.parse(s.opzioni_json);
-                const totaleVoti = s.voti.length;
-                
-                return (
-                  <div key={s.id} className="modern-card w-100 p-3 mb-3 border border-info" style={{ backgroundColor: '#082f49' }}>
-                    <h6 className="fw-bolder text-white text-center mb-3">{s.domanda}</h6>
-                    {opzioni.map((opt, idx) => {
-                      const votiOpzione = s.voti.filter(v => v.opzione_index === idx).length;
-                      const percentuale = totaleVoti === 0 ? 0 : Math.round((votiOpzione / totaleVoti) * 100);
-                      const userHaVotatoQuesto = user && s.voti.some(v => v.user_id === user.id && v.opzione_index === idx);
-
-                      return (
-                        <div key={idx} className="mb-2 position-relative" style={{ cursor: isAuth ? 'pointer' : 'default' }} onClick={() => isAuth && handleVoto(s.id, idx)}>
-                          {/* Sfondo barra */}
-                          <div className="w-100 rounded overflow-hidden" style={{ height: '36px', backgroundColor: '#0f172a' }}>
-                            {/* Progresso barra */}
-                            <div className="poll-bar h-100 d-flex align-items-center" style={{ width: `${percentuale}%`, backgroundColor: userHaVotatoQuesto ? '#38bdf8' : '#1e293b' }} />
-                          </div>
-                          {/* Testo sopra la barra */}
-                          <div className="position-absolute w-100 h-100 top-0 d-flex justify-content-between align-items-center px-3" style={{ pointerEvents: 'none' }}>
-                            <span className="fw-bold text-white shadow-sm">{opt}</span>
-                            <span className="fw-bold text-info">{percentuale}%</span>
-                          </div>
-                        </div>
-                      )
-                    })}
-                    <div className="text-center text-muted small mt-2">{totaleVoti} voti totali</div>
-                  </div>
-                )
-              })
-            )}
+          {/* COLLEGAMENTO AI SONDAGGI */}
+          <div className="mb-4 text-center">
+            <h4 className="fw-bold text-white mb-3">Sondaggi & Votazioni 📊</h4>
+            <Button 
+              className="w-100 py-3 fw-bolder fs-5 text-uppercase shadow-lg d-flex align-items-center justify-content-center gap-2" 
+              style={{ backgroundColor: '#0284c7', border: 'none', borderRadius: '1rem', transition: 'all 0.2s' }}
+              onClick={() => navigate('/sondaggi')}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.02)'; e.currentTarget.style.backgroundColor = '#0369a1'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.backgroundColor = '#0284c7'; }}
+            >
+              Vai ai Sondaggi
+            </Button>
           </div>
 
           {/* LEADERBOARD BENEFATTORE */}

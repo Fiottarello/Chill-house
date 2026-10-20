@@ -1,13 +1,27 @@
 import { useState, useEffect } from 'react';
-import { Card, Row, Col, Badge, Spinner, Tabs, Tab } from 'react-bootstrap';
+import { Card, Row, Col, Badge, Spinner, Tabs, Tab, Button, Form } from 'react-bootstrap';
 import { getTier } from '../utils/tierUtils';
-import { fetchPrenotazioni } from '../api/API.mjs';
+import { fetchPrenotazioni, updateProfile } from '../api/API.mjs';
 
-function Profile({ user }) {
+function Profile({ user, setUser }) {
   const [prenotazioni, setPrenotazioni] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [editMode, setEditMode] = useState(false);
+  const [formData, setFormData] = useState({
+    occupazione: user?.occupazione || '',
+    da_quanto_ci_conosci: user?.da_quanto_ci_conosci || '',
+    descrizione_simpatica: user?.descrizione_simpatica || ''
+  });
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
+    if (user) {
+      setFormData({
+        occupazione: user.occupazione || '',
+        da_quanto_ci_conosci: user.da_quanto_ci_conosci || '',
+        descrizione_simpatica: user.descrizione_simpatica || ''
+      });
+    }
     fetchPrenotazioni()
       .then(data => {
         const myRes = data.filter(p => p.user_id === user.id);
@@ -18,6 +32,24 @@ function Profile({ user }) {
       .catch(err => console.error("Errore nel fetch delle prenotazioni:", err))
       .finally(() => setLoading(false));
   }, [user]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const res = await updateProfile(formData);
+      if (res.success && setUser) {
+        setUser(res.user);
+        setEditMode(false);
+      } else {
+        alert("Errore durante l'aggiornamento del profilo");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Errore di rete");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   if (!user) return null;
 
@@ -113,27 +145,63 @@ function Profile({ user }) {
         {/* Colonna Destra: Dettagli & Prenotazioni */}
         <Col lg={8}>
           <Card className="modern-card border-0 mb-4 p-4 shadow-lg" style={{ backgroundColor: '#1e293b' }}>
-            <h4 className="fw-bold text-white mb-4 border-bottom pb-2" style={{ borderColor: '#334155 !important' }}>Dettagli Registrazione</h4>
-            <Row className="g-3">
-              <Col md={6}>
-                <div className="p-3 rounded h-100" style={{ backgroundColor: '#0f172a' }}>
-                  <small className="text-muted fw-bold d-block mb-1">Occupazione</small>
-                  <span className="text-light">{user.occupazione || 'Non specificato'}</span>
+            <div className="d-flex justify-content-between align-items-center mb-4 border-bottom pb-2" style={{ borderColor: '#334155 !important' }}>
+              <h4 className="fw-bold text-white mb-0">Dettagli Registrazione</h4>
+              {!editMode ? (
+                <Button variant="outline-light" size="sm" onClick={() => setEditMode(true)}>Modifica Profilo</Button>
+              ) : (
+                <div className="d-flex gap-2">
+                  <Button variant="outline-secondary" size="sm" onClick={() => setEditMode(false)} disabled={saving}>Annulla</Button>
+                  <Button variant="primary" size="sm" onClick={handleSave} disabled={saving}>{saving ? '...' : 'Salva'}</Button>
                 </div>
-              </Col>
-              <Col md={6}>
-                <div className="p-3 rounded h-100" style={{ backgroundColor: '#0f172a' }}>
-                  <small className="text-muted fw-bold d-block mb-1">Come ci hai conosciuto</small>
-                  <span className="text-light">{user.da_quanto_ci_conosci || 'Non specificato'}</span>
-                </div>
-              </Col>
-              <Col md={12}>
-                <div className="p-3 rounded" style={{ backgroundColor: '#0f172a' }}>
-                  <small className="text-muted fw-bold d-block mb-1">Descrizione Simpatica</small>
-                  <span className="text-light fst-italic">"{user.descrizione_simpatica || 'Nessuna descrizione'}"</span>
-                </div>
-              </Col>
-            </Row>
+              )}
+            </div>
+            
+            {!editMode ? (
+              <Row className="g-3">
+                <Col md={6}>
+                  <div className="p-3 rounded h-100" style={{ backgroundColor: '#0f172a' }}>
+                    <small className="text-muted fw-bold d-block mb-1">Occupazione</small>
+                    <span className="text-light">{user.occupazione || 'Non specificato'}</span>
+                  </div>
+                </Col>
+                <Col md={6}>
+                  <div className="p-3 rounded h-100" style={{ backgroundColor: '#0f172a' }}>
+                    <small className="text-muted fw-bold d-block mb-1">Da quanto tempo ci conosci</small>
+                    <span className="text-light">{user.da_quanto_ci_conosci || 'Non specificato'}</span>
+                  </div>
+                </Col>
+                <Col md={12}>
+                  <div className="p-3 rounded" style={{ backgroundColor: '#0f172a' }}>
+                    <small className="text-muted fw-bold d-block mb-1">Descrizione Simpatica</small>
+                    <span className="text-light fst-italic">"{user.descrizione_simpatica || 'Nessuna descrizione'}"</span>
+                  </div>
+                </Col>
+              </Row>
+            ) : (
+              <Form>
+                <Row className="g-3">
+                  <Col md={6}>
+                    <Form.Group>
+                      <Form.Label className="text-muted fw-bold small">Occupazione</Form.Label>
+                      <Form.Control className="modern-input text-light" style={{ backgroundColor: '#0f172a' }} value={formData.occupazione} onChange={e => setFormData({...formData, occupazione: e.target.value})} />
+                    </Form.Group>
+                  </Col>
+                  <Col md={6}>
+                    <Form.Group>
+                      <Form.Label className="text-muted fw-bold small">Da quanto tempo ci conosci</Form.Label>
+                      <Form.Control className="modern-input text-light" style={{ backgroundColor: '#0f172a' }} value={formData.da_quanto_ci_conosci} onChange={e => setFormData({...formData, da_quanto_ci_conosci: e.target.value})} />
+                    </Form.Group>
+                  </Col>
+                  <Col md={12}>
+                    <Form.Group>
+                      <Form.Label className="text-muted fw-bold small">Descrizione Simpatica</Form.Label>
+                      <Form.Control as="textarea" rows={3} className="modern-input text-light" style={{ backgroundColor: '#0f172a' }} value={formData.descrizione_simpatica} onChange={e => setFormData({...formData, descrizione_simpatica: e.target.value})} />
+                    </Form.Group>
+                  </Col>
+                </Row>
+              </Form>
+            )}
           </Card>
 
           <Card className="modern-card border-0 p-4 shadow-lg" style={{ backgroundColor: '#1e293b' }}>

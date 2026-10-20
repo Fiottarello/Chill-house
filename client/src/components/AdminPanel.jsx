@@ -30,6 +30,10 @@ function AdminPanel({ isAdmin }) {
   const [showPrenotazioneModal, setShowPrenotazioneModal] = useState(false);
   const [editPrenotazione, setEditPrenotazione] = useState(null);
 
+  // Stato Modale Foto Profilo
+  const [showAvatarModal, setShowAvatarModal] = useState(false);
+  const [avatarUrlToShow, setAvatarUrlToShow] = useState('');
+
   const loadData = async () => {
     setLoading(true);
     try {
@@ -222,6 +226,9 @@ function AdminPanel({ isAdmin }) {
                           <Badge bg={u.role === 'admin' ? 'danger' : 'secondary'}>{u.role}</Badge>
                         </td>
                           <td>
+                            <Button variant="outline-light" size="sm" onClick={() => { setAvatarUrlToShow(u.avatar_url); setShowAvatarModal(true); }} className="me-2">
+                              📷 Foto
+                            </Button>
                             <Button variant="outline-info" size="sm" onClick={() => { setEditUser(u); setShowUserModal(true); }} className="me-2">
                               Modifica
                             </Button>
@@ -576,6 +583,23 @@ function AdminPanel({ isAdmin }) {
           <Button variant="secondary" onClick={() => setShowPrenotazioneModal(false)}>Annulla</Button>
           <Button form="editPrenotazioneForm" type="submit" className="btn-indigo">Salva Prenotazione</Button>
         </Modal.Footer>
+      </Modal>
+
+      {/* --- MODALE FOTO PROFILO --- */}
+      <Modal show={showAvatarModal} onHide={() => setShowAvatarModal(false)} centered data-bs-theme="dark" contentClassName="bg-dark text-white">
+        <Modal.Header closeButton className="border-secondary">
+          <Modal.Title>Foto Profilo</Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="text-center p-4">
+          {avatarUrlToShow ? (
+            <img src={avatarUrlToShow} alt="Avatar Utente" style={{ maxWidth: '100%', maxHeight: '70vh', borderRadius: '10px', objectFit: 'contain' }} />
+          ) : (
+            <div className="py-5">
+              <span className="fs-1 d-block mb-3">👻</span>
+              <p className="text-muted mb-0">Nessuna foto trovata per questo utente.</p>
+            </div>
+          )}
+        </Modal.Body>
       </Modal>
 
     </div>

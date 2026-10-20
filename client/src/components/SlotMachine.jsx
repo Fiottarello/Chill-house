@@ -44,7 +44,7 @@ function SlotMachine({ isAuth, setUser }) {
 
     // 1. Decidiamo il risultato finale con le nuove probabilità
     const finalResult = [0, 0, 0];
-    const isWin = Math.random() < 0.20; // 20% di probabilità di vittoria assoluta
+    const isWin = Math.random() < 0.30; // 30% di probabilità di vittoria assoluta
 
     if (isWin) {
       // È una vittoria! Scegliamo quale simbolo vince (tutti equiprobabili).
@@ -102,8 +102,11 @@ function SlotMachine({ isAuth, setUser }) {
           // Usiamo una curva cubica che parte veloce e frena dolcemente
           el.style.transition = `transform ${time}s cubic-bezier(0.1, 0.7, 0.1, 1)`;
           
-          // Muoviamo la striscia fino in fondo (ogni blocco è alto 150px)
-          const targetY = -((newStrips[i].length - 1) * 150);
+          // Calcoliamo dinamicamente l'altezza del singolo elemento (per supportare il layout responsive su mobile)
+          const itemHeight = el.children[0] ? el.children[0].offsetHeight : 150;
+          
+          // Muoviamo la striscia fino in fondo
+          const targetY = -((newStrips[i].length - 1) * itemHeight);
           el.style.transform = `translateY(${targetY}px)`;
         }
       }
@@ -206,13 +209,13 @@ function SlotMachine({ isAuth, setUser }) {
               <div className="d-flex align-items-center justify-content-center gap-4">
                 <img src="/slot3.png" alt="Sborrax" style={{ width: '150px', height: '150px', borderRadius: '20px' }} className="shadow" />
                 <div className="text-start">
-                  <h1 className="fw-bolder display-3 text-warning mb-2">SEI STATO SBORRATO</h1>
+                  <h1 className="fw-bolder text-warning mb-2" style={{ fontSize: 'clamp(2rem, 6vw, 4.5rem)' }}>SEI STATO SBORRATO</h1>
                   <h2 className="fw-bold text-white fs-3">hai ricevuto la benedizione di Sborrax</h2>
                 </div>
               </div>
             ) : (
               // Layout Standard per gli altri simboli
-              <h1 className="fw-bolder display-3 text-warning mb-3 px-3">{getVictoryMessage()}</h1>
+              <h1 className="fw-bolder text-warning mb-3 px-3" style={{ fontSize: 'clamp(2rem, 7vw, 4.5rem)' }}>{getVictoryMessage()}</h1>
             )}
 
             <Button variant="outline-light" size="lg" className="mt-5" onClick={() => setVictory(false)}>
@@ -226,7 +229,7 @@ function SlotMachine({ isAuth, setUser }) {
       {cursed && (
         <div className="victory-overlay d-flex align-items-center justify-content-center" style={{ background: 'rgba(50, 0, 0, 0.9)' }}>
           <div className="victory-message text-center p-5 rounded-4 shadow-lg animate-pop" style={{ border: '3px solid #dc3545', background: '#1a0000' }}>
-            <h1 className="fw-bolder display-2 text-danger mb-3">🐔 MALEDIZIONE 🐔</h1>
+            <h1 className="fw-bolder text-danger mb-3" style={{ fontSize: 'clamp(2rem, 8vw, 5rem)' }}>🐔 MALEDIZIONE 🐔</h1>
             <h2 className="fw-bold text-white">Zucca ti ha maledetto, sei diventato un pollo!</h2>
             <p className="text-white-50 mt-3">Per le prossime 2 ore avrai la faccia da pollo in tutte le chat e recensioni.</p>
             <Button variant="danger" size="lg" className="mt-4 fw-bold" onClick={() => setCursed(false)}>

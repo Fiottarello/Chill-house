@@ -1,0 +1,45 @@
+# flyctl launch added from client/.gitignore
+# Logs
+client/**/logs
+client/**/*.log
+client/**/npm-debug.log*
+client/**/yarn-debug.log*
+client/**/yarn-error.log*
+client/**/pnpm-debug.log*
+client/**/lerna-debug.log*
+
+client/**/node_modules
+client/**/dist
+client/**/dist-ssr
+client/**/*.local
+
+# Editor directories and files
+client/**/.vscode/*
+!client/**/.vscode/extensions.json
+client/**/.idea
+client/**/.DS_Store
+client/**/*.suo
+client/**/*.ntvs*
+client/**/*.njsproj
+client/**/*.sln
+client/**/*.sw?
+
+# Database
+client/**/*.sqlite
+
+# flyctl launch added from server/.gitignore
+# Dipendenze
+server/**/node_modules
+
+# File di build di Vite
+server/**/dist
+
+# Variabili d'ambiente (non vogliamo le password pubbliche)
+server/**/.env
+
+# File di sistema
+server/**/.DS_Store
+
+# (Opzionale) Se non vuoi caricare i dati locali del DB su GitHub
+server/**/casaNostra.sqlite
+fly.toml

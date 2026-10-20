@@ -15,7 +15,10 @@ function Home({ user, isAuth }) {
     "golden1.jpg",
     "pollo.jpg",
     "samuele_morto.jpg", 
-    "tortellini.jpg"
+    "tortellini.jpg",
+    "/alette.jpeg",
+    "/scavatore.jpeg",
+    "/croce.jpeg"
   ];
 
   return (
@@ -28,12 +31,10 @@ function Home({ user, isAuth }) {
           fontSize: 'clamp(2.5rem, 6vw, 5rem)', 
           fontFamily: '"Playfair Display", serif',
           fontWeight: 900, 
-          background: 'linear-gradient(to right, #f8fafc, #cbd5e1, #94a3b8)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
+          color: '#ffffff',
           letterSpacing: '-0.5px', 
           lineHeight: '1.1',
-          textShadow: '0px 10px 30px rgba(255,255,255,0.1)'
+          textShadow: '0px 0px 15px rgba(255,255,255,0.4), 0px 4px 10px rgba(0,0,0,0.6)'
         }}>
           Benvenuti nella nostra dimora
         </h1>
@@ -55,9 +56,11 @@ function Home({ user, isAuth }) {
             animation: scroll-marquee 35s linear infinite;
           }
           
-          /* Se l'utente passa col mouse, l'animazione va in pausa per guardare meglio la foto */
-          .marquee-container:hover {
-            animation-play-state: paused;
+          /* Se l'utente passa col mouse, l'animazione va in pausa per guardare meglio la foto (solo su dispositivi con hover vero) */
+          @media (hover: hover) {
+            .marquee-container:hover {
+              animation-play-state: paused;
+            }
           }
 
           @keyframes scroll-marquee {

@@ -8,6 +8,16 @@ function WelcomeTour({ user, setUser }) {
   const [run, setRun] = useState(false);
 
   useEffect(() => {
+    // Non mostrare su dispositivi mobili (schermi più stretti di 768px)
+    if (window.innerWidth < 768) {
+      return;
+    }
+
+    // Se l'utente l'ha già visto su questo PC, non lo mostriamo mai più (fail-safe)
+    if (localStorage.getItem('casaChillTourSeen') === 'true') {
+      return;
+    }
+
     // Fai partire il tour se l'utente esiste e has_seen_tutorial è falsy o "0"
     if (user && (!user.has_seen_tutorial || user.has_seen_tutorial == 0 || user.has_seen_tutorial === '0')) {
       // Piccolo timeout per assicurarsi che il DOM della Navbar sia montato e visibile
@@ -53,6 +63,8 @@ function WelcomeTour({ user, setUser }) {
     // Intercettiamo anche 'close' in caso l'utente chiuda il popup cliccando fuori o con la X
     if (finishedStatuses.includes(status) || action === 'close' || type === 'tour:end') {
       setRun(false);
+      localStorage.setItem('casaChillTourSeen', 'true'); // Salviamo nel browser per sicurezza
+      
       try {
         await completeTutorial();
         // Aggiorna lo stato locale per non far ripartire il tour

@@ -12,3 +12,4 @@ dist/
 
 # (Opzionale) Se non vuoi caricare i dati locali del DB su GitHub
 casaNostra.sqlite
+test_*.mjs

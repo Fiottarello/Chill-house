@@ -54,19 +54,19 @@ function Prenota({ isAuth }) {
   };
 
   const handleGuestsChange = (e) => {
-    const val = parseInt(e.target.value) || 1;
-    setForm({...form, numero_ospiti: val});
-    
-    let newGuests = [...guests];
-    if (val > newGuests.length) {
-      for(let i = newGuests.length; i < val; i++) {
-        const freeRoom = availableRooms.find(r => !newGuests.map(g => g.room).includes(r)) || availableRooms[0];
-        newGuests.push({ name: '', room: freeRoom });
-      }
-    } else {
-      newGuests = newGuests.slice(0, val);
+    const rawVal = e.target.value;
+    if (rawVal === '') {
+      setForm({...form, numero_ospiti: ''});
+      return;
     }
-    setGuests(newGuests);
+    const val = parseInt(rawVal);
+    if(val >= 1 && val <= availableRooms.length) {
+      setForm({...form, numero_ospiti: val});
+      setGuests(Array.from({length: val}, (_, i) => ({
+        name: guests[i] ? guests[i].name : '',
+        room: availableRooms[i] || ''
+      })));
+    }
   };
 
   const updateGuest = (index, field, value) => {
@@ -105,7 +105,7 @@ function Prenota({ isAuth }) {
                 <Col md={12}>
                   <Form.Group>
                     <Form.Label className="small fw-bold text-muted text-uppercase">Numero totale di Ospiti</Form.Label>
-                    <Form.Control type="number" min="1" max={availableRooms.length} className="modern-input fw-bold fs-5 text-center" style={{ color: '#818cf8', width: '100%' }} value={form.numero_ospiti} onChange={handleGuestsChange} />
+                    <Form.Control type="number" min="1" max={availableRooms.length} className="modern-input fw-bold fs-5 text-center" style={{ color: '#818cf8', width: '100%' }} value={form.numero_ospiti || ''} onChange={handleGuestsChange} />
                   </Form.Group>
                 </Col>
               </Row>
